@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "sarathchandran0707/densmile-dental-clinic:v1"
+    }
+
     stages {
 
         stage('Clone Repository') {
@@ -10,15 +14,27 @@ pipeline {
             }
         }
 
-        stage('List Files') {
+        stage('Build Docker Image') {
             steps {
-                bat 'dir'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Docker Login') {
             steps {
-                bat 'docker build -t densmile-dental-clinic:v1 .'
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                bat 'docker push %IMAGE_NAME%'
             }
         }
     }
